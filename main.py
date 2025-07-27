@@ -15,7 +15,7 @@ if __name__ == "__main__":
                 
                 
 
-display_table = display_extracted_data()
+# display_table = display_extracted_data()
 # extract_date = entract_date()
 # lo = load_file()  \d{2}:\d{2}:\d{2}
 
@@ -24,3 +24,83 @@ display_table = display_extracted_data()
 #     for ent in doc.ents:
 #         print(ent.text, ent.label_)
 
+nlp = extract_data()
+
+log_lines = open("logs/auth.log").readlines()
+
+nlp = extract_data()
+rows = []
+
+for line in log_lines:
+    doc = nlp(line)
+    row = {
+        "Date": "",
+        "Time": "",
+        "Message": "",
+        "User": "",
+        "IP Address": "",
+        "Hostname": "",
+        "Ssh_Key": ""
+    }
+
+    for ent in doc.ents:
+        if ent.label_ == "DATE":
+            row["Date"] = ent.text
+        elif ent.label_ == "TIME":
+            row["Time"] = ent.text
+        elif ent.label_ == "USER":
+            tokens = ent.text.split()
+            row["User"] = tokens[1] if len(tokens) > 1 else ent.text
+        elif ent.label_ == "IP_ADDRESS":
+            row["IP Address"] = ent.text
+        elif ent.label_ == "MESSAGE":
+            row["Message"] = ent.text
+        elif ent.label_ == "HOSTNAME":
+            row["Hostname"] = ent.text
+        elif ent.label_ == "SSH_KEY":
+            row["Ssh_Key"] = ent.text
+
+    if any(row.values()):  # Skip empty rows
+        rows.append(row)
+
+# Print the result
+headers = ["Date", "Time", "Message", "User", "IP Address", "Hostname", "Ssh_Key"]
+print(tabulate(rows, headers="keys", tablefmt="grid"))
+
+
+
+# def nlp_extract():
+#     # nlp = extract_data()
+#     log_lines = open("logs/auth.log", "r").readlines()
+    
+#     rows = []
+#     for line in log_lines():
+#         doc = nlp(line)
+#         row = {"Date": "", "Time": "", "Message": "", "User": "", "IP Address": "", "Hostname": "", "Ssh_Key": ""}
+#         for ent in doc.ents:
+#             # Debugging output to see what entities are being recognized
+#             print(f"[{ent.label_}] {ent.text}")
+            
+#             # Fill the row based on the entity label
+#             if ent.label_ == "USER":
+#                 tokens = ent.text.split()
+#                 row["User"] = tokens[1] if len(tokens) > 1 else ent.text
+#             elif ent.label_ == "IP_ADDRESS":
+#                 row["IP Address"] = ent.text
+#             elif ent.label_ == "HOSTNAME":
+#                 row["Hostname"] = ent.text
+#             elif ent.label_ == "SSH_KEY":
+#                 row["Ssh_Key"] = ent.text
+#             elif ent.label_ == "DATE":
+#                 row["Date"] = ent.text
+#             elif ent.label_ == "TIME":
+#                 row["Time"] = ent.text
+#             elif ent.label_ == "MESSAGE":
+#                 row["Message"] = ent.text
+                
+#         if any(row.values()):
+#             rows.append(row)
+            
+# headers = ["Date", "Time", "Message", "User", "IP Address", "Hostname", "Ssh_Key"]
+# print(tabulate(rows, headers=headers, tablefmt="grid"))
+    
