@@ -1,4 +1,5 @@
 import spacy
+from spacy.pipeline import EntityRuler
 
 
 
@@ -70,25 +71,29 @@ def loginFailedRecognizer():
 
 
 def extract_data():
-    import spacy
-    from spacy.pipeline import EntityRuler
-
+    """ Create a rule to extract dates from the log entries. """
     nlp = spacy.blank("en")
     ruler = nlp.add_pipe("entity_ruler", config={"overwrite_ents": True})
 
     patterns = [
-        {"label": "DATE", "pattern": [{"IS_TITLE": True}, {"IS_DIGIT": True}]},  # Apr 29
-        {"label": "TIME", "pattern": [{"SHAPE": "dd:dd:dd"}]},  # 06:56:50
-        {"label": "USER", "pattern": [{"LOWER": "user"}, {"IS_ASCII": True, "OP": "?"}]},  # user=root
-        {"label": "USER", "pattern": [{"LOWER": "for"}, {"IS_ALPHA": True}]},  # for root
+        # Date: Apr 29
+        {"label": "DATE", "pattern": [{"IS_TITLE": True}, {"IS_DIGIT": True}]},
+        # Time: 06:56:50
+        {"label": "TIME", "pattern": [{"SHAPE": "dd:dd:dd"}]},
+        # Hostname: server
+        {"label": "HOSTNAME", "pattern": [{"IS_ALPHA": True}, {"TEXT": "-"}, {"IS_ALPHA": True}]},
+        # Message: Failed password
         {"label": "MESSAGE", "pattern": [{"LOWER": "failed"}, {"LOWER": "password"}]},
+        # User: for root
+        {"label": "USER", "pattern": [{"LOWER": "for"}, {"IS_ALPHA": True}]},
+        # IP Address: 192.168.1.10
         {"label": "IP_ADDRESS", "pattern": [
             {"LIKE_NUM": True}, {"TEXT": "."},
             {"LIKE_NUM": True}, {"TEXT": "."},
             {"LIKE_NUM": True}, {"TEXT": "."},
             {"LIKE_NUM": True}
         ]},
-        {"label": "HOSTNAME", "pattern": [{"IS_ALPHA": True}, {"TEXT": "-", "OP": "?"}, {"IS_ALPHA": True, "OP": "*"}]},
+        # SSH Key: optional, add if you have a pattern
     ]
 
     ruler.add_patterns(patterns)
