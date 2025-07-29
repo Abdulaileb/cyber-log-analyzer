@@ -1,5 +1,6 @@
 from src.parser import *
 from src.spacy_nlp_pipeline.entity_ruler import *
+from src.analyzer import clean_log_line
 import os
 import re
 import json 
@@ -33,10 +34,11 @@ log_lines = load_file(max_length=20, preview=False)
 
 nlp = extract_data()
 rows = []
+row_entities = []
 
 for line in log_lines:
     doc = nlp(line)
-    print([(ent.text, ent.label_) for ent in doc.ents])  # Debugging output to see recognized entities
+    print([(ent.text, ent.label_) for ent in doc.ents])  
     
     row = {
         "ID": len(rows) + 1,
@@ -46,7 +48,8 @@ for line in log_lines:
         "User": "",
         "IP Address": "",
         "Hostname": "",
-        "Ssh_Key": ""
+        "Ssh_Key": "",
+        "Port" : ""
     }
     for ent in doc.ents:
         if ent.label_ == "DATE":
@@ -54,22 +57,40 @@ for line in log_lines:
         elif ent.label_ == "TIME":
             row["Time"] = ent.text
         elif ent.label_ == "USER":
-            tokens = ent.text.split()
-            row["User"] = tokens[1] if len(tokens) > 1 else ent.text
+            #for root
+            if ent.text.lower().startswith("for "):
+                row["User"] = ent.text.split(" ", 1)[1]
+            elif ent.text.lower().startswith("user="):
+                row["User"] = ent.text.split("=", 1)[1]
+            else:
+                row["User"] = ent.text
+            row_entities.append(ent.text)
         elif ent.label_ == "IP_ADDRESS":
-            row["IP Address"] = ent.text
-        elif ent.label_ == "MESSAGE":
-            row["Message"] = ent.text
+            if ent.text.lower().startswith("rhost="):
+                row["IP Address"] = ent.text.split("=", 1)[1]
+            else:
+                row["IP Address"] = ent.text
+            row_entities.append(ent.text)
         elif ent.label_ == "HOSTNAME":
             row["Hostname"] = ent.text
         elif ent.label_ == "SSH_KEY":
             row["Ssh_Key"] = ent.text
+        elif ent.label_ == "PORT":
+            tokens = ent.text.split()
+            if len(tokens) == 2 and tokens[0].lower() == "port":
+                row["Port"] = tokens[1]
+            else:
+                row["Port"] = ent.text
+            
+    #Use message extraction
+    raw_message = message_extraction(line)
+    row["Message"] = clean_message(raw_message, row_entities)
             
     if any(row.values()):  # Skip empty rows
         rows.append(row)
         
 # Print the result
-headers = ["Date", "Time", "Message", "User", "IP Address", "Hostname", "Ssh_Key"]
+headers = ["Date", "Time", "Message", "User", "IP Address", "Hostname", "Ssh_Key", "Port"]
 
 output_log = "logs/output.json"
 file_path = os.path.exists(output_log)
@@ -86,8 +107,23 @@ print(tabulate(rows, headers="keys", tablefmt="grid"))
        
 
 
+
 #log the error:
 # Add this to debug
-doc = nlp("Apr 29 06:57:19 example-server sshd[38780]: Connection closed by 123.183.209.132 [preauth]")
-for token in doc:
-    print(repr(token.text), token.pos_, token.is_alpha, token.is_digit)
+# doc = nlp("Apr 29 06:57:19 example-server sshd[38780]: Connection closed by 123.183.209.132 [preauth]")
+# for token in doc:
+#     print(repr(token.text), token.pos_, token.is_alpha, token.is_digit)
+    
+    
+# print("Extracted entities:")
+# #Clean Data
+# log_lines = open("logs/auth_copy.log").readlines()
+
+# cleaned_data = "logs/cleaned_data.txt"
+
+# with open(cleaned_data, "w") as f:
+#     for line in log_lines:
+#         cleaned_line, kv_dict = clean_log_line(line)
+#         f.write(f"cleaned line: {cleaned_line},\n", )
+#         print("Cleaned:", cleaned_line)
+#         print("Extracted fields:", kv_dict)

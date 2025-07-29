@@ -2,6 +2,7 @@ import spacy
 from spacy.pipeline import EntityRuler
 from spacy.matcher import Matcher 
 from spacy.language import Language
+import re
 
 
 
@@ -31,15 +32,12 @@ def extract_data():
         # Message: Failed password
         {"label": "MESSAGE", "pattern": [{"LOWER": "failed"}, {"LOWER": "password"}]},
         # User: for root
-        {"label": "USER", "pattern": [{"LOWER": "for"}, {"IS_ALPHA": True}]},
-        # IP Address: 192.168.1.10
-        # {"label": "IP_ADDRESS", "pattern": [
-        #     {"LIKE_NUM": True}, {"TEXT": "."},
-        #     {"LIKE_NUM": True}, {"TEXT": "."},
-        #     {"LIKE_NUM": True}, {"TEXT": "."},
-        #     {"LIKE_NUM": True},  {"TEXT": ":"},
-        #     {"LIKE_NUM": True}, {"TEXT": ":"},
-        # ]},
+        {"label": "USER", "pattern": [{"LOWER": "for"}, {"IS_ALPHA": True},]},
+        {"label": "USER", "pattern": [{"LOWER": "user"}, {"TEXT": "="}, {"IS_ALPHA": True}]},
+        # Port: 38399 -- > "Lower" try to make it more specific to find others
+        {"label": "PORT", "pattern": [
+            {"LOWER": "port"}, {"IS_DIGIT": True}
+        ]},
     ]
 
     ruler.add_patterns(patterns)
@@ -56,16 +54,21 @@ def extract_data():
         [{"TEXT" : {"REGEX" : r"^[a-zA-z]+=\d{1,3}(\.\d{1,3}){3}:\d{1,5}$"}}],
         [{"TEXT": {"REGEX": r"^[a-zA-Z]+=\d{1,3}(\.\d{1,3}){3}$"}}]
     ])
+
     
     # Custom component to match SSH keys
     
     @Language.component("ssh_key_component")
     def custom_component(doc):
+        spans = list(doc.ents)
         matches = matcher(doc)
         for match_id, start, end in matches:
             label = nlp.vocab.strings[match_id]
-            span = doc[start:end]
-            doc.ents += (spacy.tokens.Span(doc, start, end, label=label),)
+            span = spacy.tokens.Span(doc, start, end, label=label)
+            spans.append(span)
+            # span = doc[start:end]
+        filtered = spacy.util.filter_spans(spans)
+        doc.ents = filtered
         return doc
     
     nlp.add_pipe("ssh_key_component", after="entity_ruler")
@@ -80,8 +83,24 @@ def ner():
     return nlp
 
 
-### regEx for date extraction
 
+# the message function
+def message_extraction(line):
+    # Find the first colon followed by a space (": ")
+    match = re.search(r":\s", line)
+    if match:
+        # Extract everything after that colon+space
+        return line[match.end():].strip()
+    return line.strip()
+
+def clean_message(message, entities):
+    # entities: list of entity texts to remove from message
+    for ent in entities:
+        # Remove the entity text from the message
+        message = message.replace(ent, "")
+    # Remove extra spaces left after removal
+    message = re.sub(r'\s+', ' ', message).strip()
+    return message
 
 
     
