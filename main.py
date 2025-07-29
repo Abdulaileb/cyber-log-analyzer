@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
 # log_lines = open("logs/auth.log").readlines()
 
-log_lines = load_file(max_length=10, preview=False)
+log_lines = load_file(max_length=20, preview=False)
 
 nlp = extract_data()
 rows = []
@@ -39,6 +39,7 @@ for line in log_lines:
     print([(ent.text, ent.label_) for ent in doc.ents])  # Debugging output to see recognized entities
     
     row = {
+        "ID": len(rows) + 1,
         "Date": "",
         "Time": "",
         "Message": "",
@@ -83,3 +84,10 @@ with open(output_log, "w") as f:
 
 print(tabulate(rows, headers="keys", tablefmt="grid"))
        
+
+
+#log the error:
+# Add this to debug
+doc = nlp("Apr 29 06:57:19 example-server sshd[38780]: Connection closed by 123.183.209.132 [preauth]")
+for token in doc:
+    print(repr(token.text), token.pos_, token.is_alpha, token.is_digit)

@@ -33,12 +33,13 @@ def extract_data():
         # User: for root
         {"label": "USER", "pattern": [{"LOWER": "for"}, {"IS_ALPHA": True}]},
         # IP Address: 192.168.1.10
-        {"label": "IP_ADDRESS", "pattern": [
-            {"LIKE_NUM": True}, {"TEXT": "."},
-            {"LIKE_NUM": True}, {"TEXT": "."},
-            {"LIKE_NUM": True}, {"TEXT": "."},
-            {"LIKE_NUM": True}
-        ]},
+        # {"label": "IP_ADDRESS", "pattern": [
+        #     {"LIKE_NUM": True}, {"TEXT": "."},
+        #     {"LIKE_NUM": True}, {"TEXT": "."},
+        #     {"LIKE_NUM": True}, {"TEXT": "."},
+        #     {"LIKE_NUM": True},  {"TEXT": ":"},
+        #     {"LIKE_NUM": True}, {"TEXT": ":"},
+        # ]},
     ]
 
     ruler.add_patterns(patterns)
@@ -50,14 +51,21 @@ def extract_data():
         {"TEXT": ":"}
     ]])
     
+    matcher.add("IP_ADDRESS", [
+        [{"TEXT": {"REGEX": r"^\d{1,3}(\.\d{1,3}){3}$"}}],
+        [{"TEXT" : {"REGEX" : r"^[a-zA-z]+=\d{1,3}(\.\d{1,3}){3}:\d{1,5}$"}}],
+        [{"TEXT": {"REGEX": r"^[a-zA-Z]+=\d{1,3}(\.\d{1,3}){3}$"}}]
+    ])
+    
     # Custom component to match SSH keys
     
     @Language.component("ssh_key_component")
     def custom_component(doc):
         matches = matcher(doc)
         for match_id, start, end in matches:
+            label = nlp.vocab.strings[match_id]
             span = doc[start:end]
-            doc.ents += (spacy.tokens.Span(doc, start, end, label=nlp.vocab.strings["SSH_KEY"]),)
+            doc.ents += (spacy.tokens.Span(doc, start, end, label=label),)
         return doc
     
     nlp.add_pipe("ssh_key_component", after="entity_ruler")
