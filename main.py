@@ -2,6 +2,7 @@ from src.parser import *
 from src.spacy_nlp_pipeline.entity_ruler import *
 import os
 import re
+import json 
 
 if __name__ == "__main__":
     log_line = load_file()
@@ -68,5 +69,17 @@ for line in log_lines:
         
 # Print the result
 headers = ["Date", "Time", "Message", "User", "IP Address", "Hostname", "Ssh_Key"]
+
+output_log = "logs/output.json"
+file_path = os.path.exists(output_log)
+
+#write rows as JSON (create or overwrite)
+with open(output_log, "w") as f:
+    json.dump(rows, f, indent=2)
+    if file_path:
+        print(f"File {output_log} already exists. Overwriting it.")
+    else:
+        print(f"Extracted data saved to {output_log}")
+
 print(tabulate(rows, headers="keys", tablefmt="grid"))
        
