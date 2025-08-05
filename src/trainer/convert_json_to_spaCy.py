@@ -1,68 +1,3 @@
-# import json
-# import spacy
-# from spacy.tokens import DocBin
-# from pathlib import Path
-
-
-# #Load the model for me
-# nlp = spacy.blank("en")
-# doc_bin = DocBin()
-# data = None
-
-# #load the json file
-
-# base_dir = Path(__file__).resolve().parents[2]
-
-# for file in base_dir.rglob('export_177092_project-177092-at-2025-08-01-23-49-ac8aa10b.json'):
-#     print(f"Found: {file}")
-    
-#     with open(file, "r", encoding="utf-8") as f:
-#         data = json.load(f)
-        
-        
-# #since the json structure is different, we have to find a way to loop through it
-
-# for item in data:
-#     text = item["data"]["text"]
-#     spans = []
-#     annotations = item.get("annotations", [])
-    
-#     if not annotations:
-#         continue
-    
-#     for result in annotations[0]["result"]:
-#         start = result["value"]["start"]
-#         end = result["value"]["end"]
-#         label = result["value"]["labels"][0]
-        
-#         span = (start, end, label)
-#         spans.append(span)
-        
-#     doc = nlp.make_doc(text)
-#     ents = []
-#     for start, end, label in spans:
-#         span = doc.char_span(start, end, label=label)
-#         if span is None:
-#             print(f"Skipping entity: {text[start:end]} ({label})")
-#         else:
-#             ents.append(span)
-            
-#     doc.ents = ents
-#     doc_bin.add(doc)
-    
-# #Save the format as SpaCy
-
-# output_path = Path("data/train.spacy")
-# output_path.parent.mkdir(parents=True, exist_ok=True)
-# doc_bin.to_disk(output_path)
-        
-### I had an issues with irregularities of the data 
-## Some data has "root", whilst others may get "root "... these are all irregularities that spacy doesn't accept 
-
-
-
-
-
 import json
 import spacy
 from spacy.tokens import DocBin
@@ -105,6 +40,7 @@ def make_best_span(doc, start, end, label):
             return span
     return None
 
+
 for file in base_dir.rglob('export_177092_project-177092-at-2025-08-01-23-49-ac8aa10b.json'):
     print(f"Found: {file}")
     
@@ -133,7 +69,7 @@ for item in data:
         span = make_best_span(doc, start, end, label)
         if span is None:
             original = text[start:end]
-            print(f"⚠️  Could not align span: '{original}' ({label}) in: {text}")
+            print(f"Could not align span: '{original}' ({label}) in: {text}")
         else:
             candidate_spans.append(span)
 
@@ -154,10 +90,10 @@ for item in data:
                 occupied_token_idxs.add(tok.i)
         else:
             # Overlapping span skipped
-            print(f"ℹ️  Skipped overlapping span: '{span.text}' ({span.label_})")
+            print(f"ℹ Skipped overlapping span: '{span.text}' ({span.label_})")
 
     doc.ents = selected
     doc_bin.add(doc)
 
 doc_bin.to_disk("train.spacy")
-print("✅ Saved train.spacy with", len(list(doc_bin.get_docs(nlp.vocab))), "docs")
+print("Saved train.spacy with", len(list(doc_bin.get_docs(nlp.vocab))), "docs")
